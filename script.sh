@@ -29,7 +29,7 @@ if [ "$INPUT_REEK_VERSION" = "gemfile" ]; then
     # if reek version found, then pass it to the gem install
     # left it empty otherwise, so no version will be passed
     if [ -n "$REEK_GEMFILE_VERSION" ]; then
-      REEK_VERSION="$REEK_GEMFILE_VERSION"
+      REEK_VERSION=$REEK_GEMFILE_VERSION
       else
         printf "Cannot get the reek's version from Gemfile.lock. The latest version will be installed."
     fi
@@ -38,16 +38,17 @@ if [ "$INPUT_REEK_VERSION" = "gemfile" ]; then
   fi
   else
     # set desired reek version
-    REEK_VERSION="$INPUT_REEK_VERSION"
+    REEK_VERSION=$INPUT_REEK_VERSION
 fi
 
-gem install -N reek "$(version "$REEK_VERSION")"
+# shellcheck disable=SC2046
+gem install -N reek $(version "$REEK_VERSION")
 echo '::endgroup::'
 
 export REVIEWDOG_GITHUB_API_TOKEN="${INPUT_GITHUB_TOKEN}"
 
 echo '::group:: Running reek with reviewdog 🐶 ...'
-reek --single-line . "${INPUT_REEK_FLAGS}" \
+reek --single-line . ${INPUT_REEK_FLAGS:+"${INPUT_REEK_FLAGS}"} \
   | reviewdog -f=reek \
     -name="${INPUT_TOOL_NAME}" \
     -reporter="${INPUT_REPORTER}" \
@@ -55,7 +56,7 @@ reek --single-line . "${INPUT_REEK_FLAGS}" \
     -fail-level="${INPUT_FAIL_LEVEL}" \
     -fail-on-error="${INPUT_FAIL_ON_ERROR}" \
     -level="${INPUT_LEVEL}" \
-    "${INPUT_REVIEWDOG_FLAGS}"
+    ${INPUT_REVIEWDOG_FLAGS:+"${INPUT_REVIEWDOG_FLAGS}"}
 
 reviewdog_rc=$?
 

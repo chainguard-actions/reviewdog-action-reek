@@ -1,0 +1,21 @@
+name: Test workdir input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - id: action
+        uses: .
+        with:
+          github_token: ${{ github.token }}
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          workdir: tests/fixtures/ruby-workdir
+
+      - name: Assert action completed with workdir
+        run: |
+          echo "PASS: reek ran successfully in custom workdir"

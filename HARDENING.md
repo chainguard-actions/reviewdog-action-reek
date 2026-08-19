@@ -8,45 +8,51 @@
 
 **Test Policy SHA:** `843adf9e4b8f85d0c08b27b9d0b09dd094b54702`
 
-**Harden Agent Version:** `1`
+**Harden Agent Version:** `2`
 
-Action **reviewdog--action-reek/v1.20.0** was hardened automatically. 2 finding(s) were identified and resolved across 2 iteration(s).
+Action **reviewdog--action-reek/v1.20.0** was hardened automatically. 3 finding(s) were identified and resolved across 2 iteration(s).
 
 ## Findings Fixed
 
 ### unsafe-shell (severity: high)
 
-script.sh pipes the output of a remote curl download directly to `sh` for execution: `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/.../install.sh | sh -s -- -b "${TEMP_PATH}" "${REVIEWDOG_VERSION}" 2>&1`. If the remote URL is compromised or the content is tampered with in transit, arbitrary code will be executed on the runner. The script should be downloaded to a file first, its integrity verified (e.g. via checksum), and then executed separately.
+script.sh pipes a remote install script directly to `sh` via curl without first downloading and verifying it: `curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/fd59714416d6d9a1c0692d872e38e7f8448df4fc/install.sh | sh -s -- ...`. Although the URL is pinned to a specific commit SHA, the content is still executed directly from the network without any integrity check (e.g. checksum verification), making this an unsafe-shell pattern.
 
 Locations:
 
-- `script.sh:16`
+- `script.sh:15`
 
 ### script-injection (severity: high)
 
-Rule (b) violation: Multiple env vars holding workflow-controllable input values (sourced from `inputs.*` via the `env:` block in action.yml) are expanded without double-quoting in shell commands in script.sh, allowing shell metacharacter injection:
-- Line 35: `REEK_VERSION=$INPUT_REEK_VERSION` — unquoted assignment, value later used unquoted
-- Line 38: `gem install -N reek $(version $REEK_VERSION)` — `$REEK_VERSION` unquoted inside command substitution
-- Line 43: `reek --single-line . ${INPUT_REEK_FLAGS}` — `${INPUT_REEK_FLAGS}` unquoted; an attacker-controlled value containing `;`, `|`, `&`, or `$(...)` would be interpreted by the shell
-- Line 51: `${INPUT_REVIEWDOG_FLAGS}` — similarly unquoted
-All of these should be double-quoted (e.g. `"${INPUT_REEK_FLAGS}"`) to prevent shell metacharacter injection.
+Rule (b): Unquoted shell variable expansions of user-controlled inputs in script.sh allow shell metacharacter injection. Three occurrences: (1) Line 42: `gem install -N reek $(version $REEK_VERSION)` — `$REEK_VERSION` is derived from `inputs.reek_version` and is unquoted inside command substitution, allowing word-splitting and glob expansion. (2) Line 49: `reek --single-line . ${INPUT_REEK_FLAGS}` — `${INPUT_REEK_FLAGS}` maps to `inputs.reek_flags` and is unquoted, permitting shell metacharacter injection (the `# shellcheck disable=SC2086` comment confirms the author suppressed the warning). (3) Line 57: `${INPUT_REVIEWDOG_FLAGS}` — maps to `inputs.reviewdog_flags` and is unquoted for the same reason. All three should be double-quoted or handled with a safe argument-splitting mechanism.
 
 Locations:
 
-- `script.sh:35`
-- `script.sh:38`
-- `script.sh:43`
-- `script.sh:51`
+- `script.sh:42`
+- `script.sh:49`
+- `script.sh:57`
+
+### missing-permissions (severity: medium)
+
+None of the five workflow files define a top-level `permissions:` block, and no individual job within any of these files defines a `permissions:` block either. Without explicit permissions, workflows run with the repository's default token permissions, which may be overly broad (e.g. write access to contents, pull-requests, etc.). All five files are affected: ci.yml, depup.yml, release.yml, shellcheck.yml, and yamllint.yml.
+
+Locations:
+
+- `.github/workflows/ci.yml:1`
+- `.github/workflows/depup.yml:1`
+- `.github/workflows/release.yml:1`
+- `.github/workflows/shellcheck.yml:1`
+- `.github/workflows/yamllint.yml:1`
 
 ## Iteration Notes
 
 ### Iteration 1
 
-**Fixes applied:** unsafe-shell, script-injection
+**Fixes applied:** unsafe-shell, script-injection, missing-permissions
 
 **Notes:**
 
-Fixed script.sh: (1) unsafe-shell: replaced `curl ... | sh` pipe with download-to-temp-file then execute separately pattern — curl now saves to a mktemp file, sh executes it, then rm cleans it up; (2) script-injection: double-quoted all unquoted variable assignments and expansions — REEK_VERSION=$REEK_GEMFILE_VERSION, REEK_VERSION=$INPUT_REEK_VERSION, and $(version $REEK_VERSION) are now properly double-quoted. The INPUT_REEK_FLAGS and INPUT_REVIEWDOG_FLAGS variables retain their intentional unquoted word-splitting behavior (with existing shellcheck disable comments) as they are flag variables that must be split into multiple arguments.
+1. unsafe-shell (script.sh:15): Replaced `curl ... | sh` with a two-step approach: download the install script to a temp file with `curl -sfL -o`, execute it with `sh`, then remove it. 2. script-injection (script.sh:42,49,57): Quoted `$REEK_VERSION` in the `version()` call (`$(version "$REEK_VERSION")`). For `${INPUT_REEK_FLAGS}` and `${INPUT_REVIEWDOG_FLAGS}`, added `set -f` before the command to disable glob expansion (preventing glob injection) while preserving intentional word-splitting for multi-flag inputs, with `set +f` to restore afterward. 3. missing-permissions: Added top-level `permissions:` blocks to all five workflow files — ci.yml (`contents: read`), depup.yml (`contents: write`, `pull-requests: write`), release.yml (`contents: write`), shellcheck.yml (`contents: read`, `pull-requests: write`), yamllint.yml (`contents: read`, `pull-requests: write`).
 
 ### Iteration 2
 
@@ -54,5 +60,5 @@ Fixed script.sh: (1) unsafe-shell: replaced `curl ... | sh` pipe with download-t
 
 **Notes:**
 
-Fixed three unquoted shell variable expansions in script.sh that could allow shell injection via user-controlled inputs: (1) Quoted the $(version "$REEK_VERSION") command substitution on the gem install line to prevent word-splitting; (2) Quoted ${INPUT_REEK_FLAGS} in the reek command to prevent metacharacter injection from the reek_flags input; (3) Quoted ${INPUT_REVIEWDOG_FLAGS} in the reviewdog invocation to prevent metacharacter injection from the reviewdog_flags input. Removed the associated shellcheck disable comments (SC2046, SC2086) that were suppressing warnings about these unquoted expansions.
+Fixed script-injection in hardened/action/script.sh at lines 53 and 61. Replaced unquoted `${INPUT_REEK_FLAGS}` and `${INPUT_REVIEWDOG_FLAGS}` with the guarded double-quoted form `${VAR:+"$VAR"}`. This prevents shell metacharacter injection from attacker-controlled input values while correctly handling the optional/empty case by dropping the argument entirely when the variable is unset or empty. Also removed the now-unnecessary `set -f`/`set +f` glob-disabling workaround and the `# shellcheck disable=SC2086` comment.
 
