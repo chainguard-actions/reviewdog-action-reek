@@ -8,6 +8,8 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 
 | Version | Tag | Upstream commit |
 |---------|-----|-----------------|
+| v1 | [`v1`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) |
+| v1.20 | [`v1.20`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1.20) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) |
 | v1.20.0 | [`v1.20.0`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1.20.0) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) |
 
 ## Privacy
