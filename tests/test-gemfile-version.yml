@@ -1,0 +1,39 @@
+name: Test reek_version gemfile reads version from Gemfile.lock
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure Ruby is available
+        run: |
+          if ! command -v gem >/dev/null 2>&1; then
+            SUDO=""
+            if [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then SUDO="sudo"; fi
+            $SUDO apt-get update
+            $SUDO apt-get install -y ruby ruby-dev build-essential
+          fi
+          ruby --version
+      - id: action
+        uses: .
+        with:
+          reek_version: gemfile
+          reporter: local
+          filter_mode: nofilter
+          workdir: tests/fixtures/gemfile
+      - name: Assert reek 6.1.4 installed
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success"
+            exit 1
+          fi
+          gem list reek
+          if ! gem list -i reek -v 6.1.4 >/dev/null 2>&1; then
+            echo "FAIL: reek 6.1.4 (from Gemfile.lock) not installed"
+            exit 1
+          fi
+          echo "PASS"

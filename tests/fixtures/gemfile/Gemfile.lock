@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    reek (6.1.4)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  reek
+
+BUNDLED WITH
+   2.3.7

@@ -1,0 +1,39 @@
+name: Test basic usage (local reporter, smelly code, fail_level none)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Ensure Ruby is available
+        run: |
+          if ! command -v gem >/dev/null 2>&1; then
+            SUDO=""
+            if [ "$(id -u)" != "0" ] && command -v sudo >/dev/null 2>&1; then SUDO="sudo"; fi
+            $SUDO apt-get update
+            $SUDO apt-get install -y ruby ruby-dev build-essential
+          fi
+          ruby --version
+          gem --version
+      - id: action
+        uses: .
+        with:
+          reporter: local
+          filter_mode: nofilter
+          fail_level: none
+          workdir: tests/fixtures/smelly
+      - name: Assert action succeeded and reek is installed
+        env:
+          OUTCOME: ${{ steps.action.outcome }}
+        run: |
+          echo "outcome: $OUTCOME"
+          if [ "$OUTCOME" != "success" ]; then
+            echo "FAIL: expected success"
+            exit 1
+          fi
+          if ! gem list -i reek >/dev/null 2>&1; then
+            echo "FAIL: reek gem not installed"
+            exit 1
+          fi
+          echo "PASS"
