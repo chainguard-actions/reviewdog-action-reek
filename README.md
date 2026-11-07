@@ -11,6 +11,7 @@ Hardened by [Chainguard](https://www.chainguard.dev) from the upstream action at
 | v1 | [`v1`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) | — |
 | v1.20 | [`v1.20`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1.20) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) | — |
 | v1.20.0 | [`v1.20.0`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1.20.0) | [`43d3a42`](https://github.com/reviewdog/action-reek/commit/43d3a426ebcfd42aca089a877b60f8e6170c51e0) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-reek/blob/v1.20.0/HARDENING.md) |
+| v1.21.0 | [`v1.21.0`](https://github.com/chainguard-actions/reviewdog-action-reek/tree/v1.21.0) | [`da6eadc`](https://github.com/reviewdog/action-reek/commit/da6eadcf4519721c1e9b08061cb4053081af0df7) | [`HARDENING.md`](https://github.com/chainguard-actions/reviewdog-action-reek/blob/v1.21.0/HARDENING.md) |
 
 ## Privacy
 
